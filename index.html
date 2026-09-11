@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<title>香港天文台 - 實時天氣報告</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    width: 960px;
+    height: 923px;
+    overflow: hidden;
+    background-color: #1a1a1a;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    width: 640px;
+    height: 615px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", sans-serif;
+    color: #ffffff;
+    background-color: #1a1a1a;
+    position: relative;
+    overflow: hidden;
+    transform: scale(1.5);
+    transform-origin: top left;
+  }
+
+  /* 背景圖容器 */
+  .bg-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 640px;
+    height: 615px;
+    background-size: cover;
+    background-position: center;
+    transition: background 0.8s ease-in-out;
+  }
+
+  /* --- 極簡純粹的天氣背景圖 --- */
+
+  /* 1. 白天晴朗：乾淨藍天白雲 */
+  .bg-sunny {
+    background: linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.35)),
+                url('https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?q=80&w=640&auto=format&fit=crop') #2b5876;
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* 2. 夜間晴朗：深邃夜空與星月 */
+  .bg-night-clear {
+    background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.5)),
+                url('https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=640&auto=format&fit=crop') #0f172a;
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* 3. 多雲/陰天：柔和積雲與陰天天空 */
+  .bg-cloudy {
+    background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.45)),
+                url('https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=640&auto=format&fit=crop') #334155;
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* 4. 下雨/雷暴：玻璃水珠雨景 */
+  .bg-rainy {
+    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.55)),
+                url('https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=640&auto=format&fit=crop') #1e1b4b;
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* 5. 霧/煙霞：極簡灰調大霧 */
+  .bg-foggy {
+    background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45)),
+                url('https://images.unsplash.com/photo-1487621167305-5d248087c724?q=80&w=640&auto=format&fit=crop') #475569;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .widget-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 640px;
+    height: 615px;
+    padding: 30px 40px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+  }
+
+  .header-row {
+    width: 100%;
+    border-bottom: 2px solid #f0c243;
+    padding-bottom: 12px;
+    margin-bottom: 15px;
+  }
+
+  .header-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .title-text {
+    font-size: 38px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .time-text {
+    font-size: 26px;
+    font-weight: bold;
+    color: #ffffff;
+    text-align: right;
+  }
+
+  /* 天氣警告條樣式 */
+  .warning-bar {
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 32px;
+  }
+
+  .warning-badge {
+    background: rgba(220, 38, 38, 0.85);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+
+  .location-text {
+    font-size: 28px;
+    color: #f0f0f0;
+    margin-bottom: 15px;
+  }
+
+  .content-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .left-col {
+    width: 55%;
+    vertical-align: top;
+  }
+
+  .right-col {
+    width: 45%;
+    vertical-align: top;
+    text-align: right;
+    padding-top: 10px;
+  }
+
+  .temp-range {
+    font-size: 34px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 20px;
+  }
+
+  .main-temp {
+    font-size: 85px;
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 15px;
+    color: #ffffff;
+    letter-spacing: -2px;
+  }
+
+  .main-humidity {
+    font-size: 85px;
+    font-weight: bold;
+    line-height: 1;
+    color: #ffffff;
+    letter-spacing: -2px;
+  }
+
+  .weather-icon-img {
+    width: 170px;
+    height: 170px;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+  }
+</style>
+</head>
+<body>
+
+  <div class="bg-container bg-cloudy" id="bgLayer"></div>
+
+  <div class="widget-card">
+    <div class="header-row">
+      <table class="header-table">
+        <tr>
+          <td class="title-text">天氣報告</td>
+          <td class="time-text" id="updateTime">更新中...</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 實時播報警告容器 -->
+    <div class="warning-bar" id="warningBar"></div>
+
+    <div class="location-text">香港天文台</div>
+
+    <table class="content-table">
+      <tr>
+        <td class="left-col">
+          <div class="temp-range">
+            ↓<span id="minTemp">--</span>°C ↑<span id="maxTemp">--</span>°C
+          </div>
+          <div class="main-temp"><span id="currTemp">--.-</span>°C</div>
+          <div class="main-humidity"><span id="currHumidity">--</span>%</div>
+        </td>
+        <td class="right-col">
+          <img id="weatherIcon" class="weather-icon-img" src="" alt="天氣圖示" style="display:none;" />
+        </td>
+      </tr>
+    </table>
+  </div>
+
+<script>
+  async function fetchWithTimeout(url, timeout = 5000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(id);
+      return response;
+    } catch (e) {
+      clearTimeout(id);
+      throw e;
+    }
+  }
+
+  async function fetchHKOData(dataType) {
+    const timestamp = Date.now();
+    const targetUrl = `https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=${dataType}&lang=tc&_=${timestamp}`;
+    
+    const sources = [
+      targetUrl,
+      `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+    ];
+
+    for (const url of sources) {
+      try {
+        const res = await fetchWithTimeout(url, 4000);
+        if (res.ok) {
+          const data = await res.json();
+          if (data) return data;
+        }
+      } catch (e) {
+        console.warn(`[${dataType}] 數據源連線失敗，切換後備源...`);
+      }
+    }
+    return null;
+  }
+
+  async function getWeatherData() {
+    const data = await fetchHKOData('rhrread');
+    if (data) {
+      renderWeather(data);
+    } else {
+      console.error('無法連線至天文台天氣數據源');
+    }
+  }
+
+  async function getWeatherWarnings() {
+    const data = await fetchHKOData('warnsum');
+    const warningBar = document.getElementById('warningBar');
+    warningBar.innerHTML = '';
+
+    if (data) {
+      let activeWarnings = [];
+      Object.keys(data).forEach(key => {
+        const item = data[key];
+        if (item && item.actionCode !== 'CANCEL') {
+          activeWarnings.push(item.name);
+        }
+      });
+
+      if (activeWarnings.length > 0) {
+        activeWarnings.forEach(name => {
+          const badge = document.createElement('div');
+          badge.className = 'warning-badge';
+          badge.innerText = `⚠️ ${name}`;
+          warningBar.appendChild(badge);
+        });
+      }
+    }
+  }
+
+  function renderWeather(data) {
+    if (data.updateTime) {
+      const timeStr = data.updateTime.substring(11, 16);
+      document.getElementById('updateTime').innerText = `${timeStr} 更新`;
+    }
+
+    if (data.temperature && data.temperature.data) {
+      const hkoTemp = data.temperature.data.find(item => item.place === '香港天文台') || data.temperature.data[0];
+      if (hkoTemp) {
+        document.getElementById('currTemp').innerText = hkoTemp.value.toFixed(1);
+      }
+
+      if (data.temperature.mintemp !== undefined && data.temperature.maxtemp !== undefined) {
+        document.getElementById('minTemp').innerText = Math.round(data.temperature.mintemp);
+        document.getElementById('maxTemp').innerText = Math.round(data.temperature.maxtemp);
+      } else {
+        const temps = data.temperature.data.map(t => t.value).filter(v => typeof v === 'number');
+        if (temps.length > 0) {
+          document.getElementById('minTemp').innerText = Math.round(Math.min(...temps));
+          document.getElementById('maxTemp').innerText = Math.round(Math.max(...temps));
+        }
+      }
+    }
+
+    if (data.humidity && data.humidity.data && data.humidity.data.length > 0) {
+      document.getElementById('currHumidity').innerText = data.humidity.data[0].value;
+    }
+
+    if (data.icon && data.icon.length > 0) {
+      const iconCode = data.icon[0];
+      const iconImg = document.getElementById('weatherIcon');
+      iconImg.src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
+      iconImg.style.display = 'inline-block';
+
+      updateBackground(iconCode);
+    }
+  }
+
+  function updateBackground(iconCode) {
+    const bgLayer = document.getElementById('bgLayer');
+    bgLayer.className = 'bg-container';
+
+    const sunnyIcons = [50, 51, 52, 90, 91];
+    const nightClearIcons = [70, 71, 72, 73, 77];
+    const rainyIcons = [53, 54, 62, 63, 64, 65, 74, 75];
+    const foggyIcons = [83, 84, 85];
+
+    if (sunnyIcons.includes(iconCode)) {
+      bgLayer.classList.add('bg-sunny');
+    } else if (nightClearIcons.includes(iconCode)) {
+      bgLayer.classList.add('bg-night-clear');
+    } else if (rainyIcons.includes(iconCode)) {
+      bgLayer.classList.add('bg-rainy');
+    } else if (foggyIcons.includes(iconCode)) {
+      bgLayer.classList.add('bg-foggy');
+    } else {
+      bgLayer.classList.add('bg-cloudy');
+    }
+  }
+
+  function init() {
+    getWeatherData();
+    getWeatherWarnings();
+  }
+
+  init();
+  setInterval(init, 30 * 1000);
+</script>
+
+</body>
+</html>
